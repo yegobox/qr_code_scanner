@@ -13,6 +13,8 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.ResultPoint
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
+import com.journeyapps.barcodescanner.CustomDecoratedBarcodeView
+import com.journeyapps.barcodescanner.Size
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -25,7 +27,8 @@ class QRView(private val context: Context, messenger: BinaryMessenger, private v
 
     private var isTorchOn: Boolean = false
     private var isPaused: Boolean = false
-    private var barcodeView: CustomFramingRectBarcodeView? = null
+    private var barcodeViewCustom: CustomDecoratedBarcodeView? = null
+//    private var barcodeView: CustomFramingRectBarcodeView? = null
     private val channel: MethodChannel = MethodChannel(messenger, "net.touchcapture.qr.flutterqr/qrview_$id")
     private var permissionGranted: Boolean = false
 
@@ -38,13 +41,13 @@ class QRView(private val context: Context, messenger: BinaryMessenger, private v
         Shared.activity?.application?.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
             override fun onActivityPaused(p0: Activity) {
                 if (p0 == Shared.activity && !isPaused && hasCameraPermission()) {
-                    barcodeView?.pause()
+                    barcodeViewCustom?.pause()
                 }
             }
 
             override fun onActivityResumed(p0: Activity) {
                 if (p0 == Shared.activity && !isPaused && hasCameraPermission()) {
-                    barcodeView?.resume()
+                    barcodeViewCustom?.resume()
                 }
             }
 
@@ -66,8 +69,8 @@ class QRView(private val context: Context, messenger: BinaryMessenger, private v
     }
 
     override fun dispose() {
-        barcodeView?.pause()
-        barcodeView = null
+        barcodeViewCustom?.pause()
+        barcodeViewCustom = null
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -95,44 +98,44 @@ class QRView(private val context: Context, messenger: BinaryMessenger, private v
     }
 
     private fun getCameraInfo(result: MethodChannel.Result) {
-        if (barcodeView == null) {
+        if (barcodeViewCustom == null) {
             return barCodeViewNotSet(result)
         }
-        result.success(barcodeView!!.cameraSettings.requestedCameraId)
+        result.success(barcodeViewCustom!!.cameraSettings?.requestedCameraId)
     }
 
     private fun flipCamera(result: MethodChannel.Result) {
-        if (barcodeView == null) {
+        if (barcodeViewCustom == null) {
             return barCodeViewNotSet(result)
         } else {
-            barcodeView!!.pause()
-            val settings = barcodeView!!.cameraSettings
+            barcodeViewCustom!!.pause()
+            val settings = barcodeViewCustom!!.cameraSettings
 
-            if(settings.requestedCameraId == CameraInfo.CAMERA_FACING_FRONT)
+            if(settings?.requestedCameraId == CameraInfo.CAMERA_FACING_FRONT)
                 settings.requestedCameraId = CameraInfo.CAMERA_FACING_BACK
             else
-                settings.requestedCameraId = CameraInfo.CAMERA_FACING_FRONT
+                settings?.requestedCameraId = CameraInfo.CAMERA_FACING_FRONT
 
-            barcodeView!!.cameraSettings = settings
-            barcodeView!!.resume()
-            result.success(settings.requestedCameraId)
+            barcodeViewCustom!!.cameraSettings = settings
+            barcodeViewCustom!!.resume()
+            result.success(settings?.requestedCameraId)
         }
     }
 
     private fun getFlashInfo(result: MethodChannel.Result) {
-        if (barcodeView == null) {
+        if (barcodeViewCustom == null) {
             return barCodeViewNotSet(result)
         }
         result.success(isTorchOn)
     }
 
     private fun toggleFlash(result: MethodChannel.Result) {
-        if (barcodeView == null) {
+        if (barcodeViewCustom == null) {
             return barCodeViewNotSet(result)
         }
 
         if (hasFlash()) {
-            barcodeView!!.setTorch(!isTorchOn)
+            barcodeViewCustom!!.getBarcodeView().setTorch(!isTorchOn)
             isTorchOn = !isTorchOn
             result.success(isTorchOn)
         } else {
@@ -142,24 +145,24 @@ class QRView(private val context: Context, messenger: BinaryMessenger, private v
     }
 
     private fun pauseCamera(result: MethodChannel.Result) {
-        if (barcodeView == null) {
+        if (barcodeViewCustom == null) {
             return barCodeViewNotSet(result)
         } else {
-            if (barcodeView!!.isPreviewActive) {
+            if (barcodeViewCustom!!.getBarcodeView().isPreviewActive) {
                 isPaused = true
-                barcodeView!!.pause()
+                barcodeViewCustom!!.pause()
             }
             result.success(true)
         }
     }
 
     private fun resumeCamera(result: MethodChannel.Result) {
-        if (barcodeView == null) {
+        if (barcodeViewCustom == null) {
             return barCodeViewNotSet(result)
         } else {
-            if (!barcodeView!!.isPreviewActive) {
+            if (!barcodeViewCustom!!.getBarcodeView().isPreviewActive) {
                 isPaused = false
-                barcodeView!!.resume()
+                barcodeViewCustom!!.resume()
             }
             result.success(true)
         }
@@ -190,17 +193,17 @@ class QRView(private val context: Context, messenger: BinaryMessenger, private v
         return initBarCodeView().apply {}!!
     }
 
-    private fun initBarCodeView(): CustomFramingRectBarcodeView? {
-        if (barcodeView == null) {
-            barcodeView =
-                CustomFramingRectBarcodeView(Shared.activity)
+    private fun initBarCodeView(): CustomDecoratedBarcodeView? {
+        if (barcodeViewCustom == null) {
+            barcodeViewCustom =
+                CustomDecoratedBarcodeView(Shared.activity)
             if (params["cameraFacing"] as Int == 1) {
-                barcodeView?.cameraSettings?.requestedCameraId = CameraInfo.CAMERA_FACING_FRONT
+                barcodeViewCustom?.cameraSettings?.requestedCameraId = CameraInfo.CAMERA_FACING_FRONT
             }
         } else {
-            if (!isPaused) barcodeView!!.resume()
+            if (!isPaused) barcodeViewCustom!!.resume()
         }
-        return barcodeView
+        return barcodeViewCustom
     }
 
     private fun startScan(arguments: List<Int>?, result: MethodChannel.Result) {
@@ -215,9 +218,10 @@ class QRView(private val context: Context, messenger: BinaryMessenger, private v
             result.error(null, null, null)
         }
 
-        barcodeView?.decodeContinuous(
+        barcodeViewCustom?.decodeContinuous(
                 object : BarcodeCallback {
                     override fun barcodeResult(result: BarcodeResult) {
+//                        result.d
                         if (allowedBarcodeTypes.size == 0 || allowedBarcodeTypes.contains(result.barcodeFormat)) {
                             val code = mapOf(
                                     "code" to result.text,
@@ -234,14 +238,14 @@ class QRView(private val context: Context, messenger: BinaryMessenger, private v
     }
 
     private fun stopScan() {
-        barcodeView?.stopDecoding()
+        barcodeViewCustom?.getBarcodeView()?.stopDecoding()
     }
 
     private fun getSystemFeatures(result: MethodChannel.Result) {
         try {
             result.success(mapOf("hasFrontCamera" to hasFrontCamera(),
                     "hasBackCamera" to hasBackCamera(), "hasFlash" to hasFlash(),
-                    "activeCamera" to barcodeView?.cameraSettings?.requestedCameraId))
+                    "activeCamera" to barcodeViewCustom?.cameraSettings?.requestedCameraId))
         } catch (e: Exception) {
             result.error(null, null, null)
         }
@@ -262,11 +266,12 @@ class QRView(private val context: Context, messenger: BinaryMessenger, private v
         dpScanAreaHeight: Double,
         dpCutOutBottomOffset: Double
     ) {
-        barcodeView?.setFramingRect(
-            convertDpToPixels(dpScanAreaWidth),
-            convertDpToPixels(dpScanAreaHeight),
-            convertDpToPixels(dpCutOutBottomOffset),
-        )
+        barcodeViewCustom?.getBarcodeView()?.framingRectSize = Size(convertDpToPixels(dpScanAreaWidth),  convertDpToPixels(dpScanAreaHeight))
+//        barcodeViewCustom?.getBarcodeView()?.framingRectSize = (
+//            convertDpToPixels(dpScanAreaWidth),
+//            convertDpToPixels(dpScanAreaHeight),
+//            convertDpToPixels(dpCutOutBottomOffset),
+//        )
     }
 
     private fun convertDpToPixels(dp: Double) =
