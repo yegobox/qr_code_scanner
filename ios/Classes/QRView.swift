@@ -17,7 +17,7 @@ public class QRView:NSObject,FlutterPlatformView {
     
     // Codabar, maxicode, rss14 & rssexpanded not supported. Replaced with qr.
     // UPCa uses ean13 object.
-    var QRCodeTypes = [
+    let QRCodeTypes = [
           0: AVMetadataObject.ObjectType.aztec,
           1: AVMetadataObject.ObjectType.qr,
           2: AVMetadataObject.ObjectType.code39,

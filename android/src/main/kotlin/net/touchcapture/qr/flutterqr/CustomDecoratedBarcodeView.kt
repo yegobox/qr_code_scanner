@@ -2,7 +2,7 @@ package com.journeyapps.barcodescanner
 
 import android.content.Context
 import android.content.Intent
-import android.content.res.TypedArray
+import android.graphics.Color
 import android.util.AttributeSet
 import android.view.KeyEvent
 import android.widget.FrameLayout
@@ -12,10 +12,9 @@ import com.google.zxing.ResultPoint
 import com.google.zxing.client.android.DecodeFormatManager
 import com.google.zxing.client.android.DecodeHintManager
 import com.google.zxing.client.android.Intents
-import com.google.zxing.client.android.R
 import com.journeyapps.barcodescanner.camera.CameraParametersCallback
 import com.journeyapps.barcodescanner.camera.CameraSettings
-//import net.touchcapture.qr.flutterqr.CustomFramingRectBarcodeView
+import net.touchcapture.qr.flutterqr.R
 
 /**
  * Encapsulates BarcodeView, ViewfinderView and status text.
@@ -25,14 +24,10 @@ import com.journeyapps.barcodescanner.camera.CameraSettings
 open class CustomDecoratedBarcodeView : FrameLayout {
     private var barcodeView: BarcodeView? = null
     var viewFinder: ViewfinderView? = null
-        private set
-    var statusView: TextView? = null
-        private set
 
-    /**
-     * The instance of @link TorchListener to send events callback.
-     */
-    private var torchListener: TorchListener? = null
+    var showDots: Boolean = false
+    var showOverlay: Boolean = false
+    var showLaser: Boolean = false
 
     private inner class WrappedCallback(private val delegate: BarcodeCallback) :
         BarcodeCallback {
@@ -41,27 +36,35 @@ open class CustomDecoratedBarcodeView : FrameLayout {
         }
 
         override fun possibleResultPoints(resultPoints: List<ResultPoint>) {
-            for (point in resultPoints) {
-                viewFinder!!.addPossibleResultPoint(point)
+            if (showDots) {
+                for (point in resultPoints) {
+                    viewFinder!!.addPossibleResultPoint(point)
+                }
+                delegate.possibleResultPoints(resultPoints)
             }
-            delegate.possibleResultPoints(resultPoints)
         }
     }
 
-    constructor(context: Context?) : super(context!!) {
+    constructor(context: Context) : super(context) {
         initialize()
     }
 
-    constructor(context: Context?, attrs: AttributeSet?) : super(
-        context!!, attrs
+    constructor(context: Context, attrs: AttributeSet?) : super(
+        context, attrs
     ) {
         initialize(attrs)
     }
 
-    constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : super(
-        context!!, attrs, defStyleAttr
+    constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(
+        context, attrs, defStyleAttr
     ) {
         initialize(attrs)
+    }
+
+    constructor(context: Context, showLaser: Boolean, showDots: Boolean) : super(context) {
+        this.showLaser = showLaser
+        this.showDots = showDots
+        initialize()
     }
     /**
      * Initialize the view with the xml configuration based on styleable attributes.
@@ -92,10 +95,12 @@ open class CustomDecoratedBarcodeView : FrameLayout {
             "There is no a com.journeyapps.barcodescanner.ViewfinderView on provided layout " +
                     "with the id \"zxing_viewfinder_view\"."
         }
-        viewFinder!!.setCameraPreview(barcodeView)
 
-        // statusView is optional
-        statusView = findViewById(R.id.zxing_status_view)
+        viewFinder!!.setLaserVisibility(showLaser)
+        viewFinder!!.setCameraPreview(barcodeView)
+        if (!showOverlay) viewFinder!!.setMaskColor(Color.TRANSPARENT)
+        val statusText: TextView = findViewById(R.id.zxing_status_view)
+        statusText.text = ""
     }
 
     /**
@@ -119,8 +124,8 @@ open class CustomDecoratedBarcodeView : FrameLayout {
                 setTorchOn()
             }
         }
-        val customPromptMessage = intent.getStringExtra(Intents.Scan.PROMPT_MESSAGE)
-        customPromptMessage?.let { setStatusText(it) }
+//        val customPromptMessage = intent.getStringExtra(Intents.Scan.PROMPT_MESSAGE)
+//        customPromptMessage?.let { setStatusText(it) }
 
         // Check what type of scan. Default: normal scan
         val scanType = intent.getIntExtra(Intents.Scan.SCAN_TYPE, 0)
@@ -143,12 +148,12 @@ open class CustomDecoratedBarcodeView : FrameLayout {
             barcodeView!!.cameraSettings = cameraSettings
         }
 
-    fun setStatusText(text: String?) {
-        // statusView is optional when using a custom layout
-        if (statusView != null) {
-            statusView!!.text = text
-        }
-    }
+//    fun setStatusText(text: String?) {
+//        // statusView is optional when using a custom layout
+//        if (statusView != null) {
+//            statusView!!.text = text
+//        }
+//    }
 
     /**
      * @see BarcodeView.pause
@@ -171,8 +176,9 @@ open class CustomDecoratedBarcodeView : FrameLayout {
         barcodeView!!.resume()
     }
 
-    fun getBarcodeView(): BarcodeView {
-        return findViewById(R.id.zxing_barcode_surface)
+    fun getBarcodeView(): BarcodeView? {
+        return barcodeView;
+//        return findViewById(R.id.zxing_barcode_surface)
     }
 
     /**
@@ -194,9 +200,6 @@ open class CustomDecoratedBarcodeView : FrameLayout {
      */
     fun setTorchOn() {
         barcodeView!!.setTorch(true)
-        if (torchListener != null) {
-            torchListener!!.onTorchOn()
-        }
     }
 
     /**
@@ -204,9 +207,6 @@ open class CustomDecoratedBarcodeView : FrameLayout {
      */
     fun setTorchOff() {
         barcodeView!!.setTorch(false)
-        if (torchListener != null) {
-            torchListener!!.onTorchOff()
-        }
     }
 
     /**
@@ -238,17 +238,5 @@ open class CustomDecoratedBarcodeView : FrameLayout {
             }
         }
         return super.onKeyDown(keyCode, event)
-    }
-
-    fun setTorchListener(listener: TorchListener?) {
-//        torchListener = listener
-    }
-
-    /**
-     * The Listener to torch/fflashlight events (turn on, turn off).
-     */
-    interface TorchListener {
-        fun onTorchOn()
-        fun onTorchOff()
     }
 }

@@ -17,7 +17,7 @@ public class QRViewFactory: NSObject, FlutterPlatformViewFactory {
     }
     
     public func create(withFrame frame: CGRect, viewIdentifier viewId: Int64, arguments args: Any?) -> FlutterPlatformView {
-        let params = args as! Dictionary<String, Double>
+        let params = args as! Dictionary<String, Any>
         return QRView(withFrame: frame, withRegistrar: registrar!,withId: viewId, params: params)
     }
     

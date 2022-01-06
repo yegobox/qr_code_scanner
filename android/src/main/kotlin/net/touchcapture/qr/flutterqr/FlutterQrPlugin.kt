@@ -4,42 +4,39 @@ import androidx.annotation.NonNull
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
-import net.touchcapture.qr.flutterqr.Shared.activity
 
 class FlutterQrPlugin : FlutterPlugin, ActivityAware {
 
+    private lateinit var flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
+
+    private lateinit var qrViewFactory: QRViewFactory
+
     /** Plugin registration embedding v2 */
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        if (activity != null) {
-            activity = activity
-        }
+        qrViewFactory = QRViewFactory(flutterPluginBinding)
+        this.flutterPluginBinding = flutterPluginBinding
         flutterPluginBinding.platformViewRegistry
             .registerViewFactory(
-                "net.touchcapture.qr.flutterqr/qrview", QRViewFactory(flutterPluginBinding.binaryMessenger))
+                "net.touchcapture.qr.flutterqr/qrview", qrViewFactory
+            )
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
     }
 
     override fun onAttachedToActivity(activityPluginBinding: ActivityPluginBinding) {
-        activity = activityPluginBinding.activity
-        Shared.binding = activityPluginBinding
+        qrViewFactory.onAttachedToActivity(activityPluginBinding)
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
-        activity = null
-        Shared.binding = null
+        qrViewFactory.onDetachedFromActivity()
     }
 
     override fun onReattachedToActivityForConfigChanges(activityPluginBinding: ActivityPluginBinding) {
-        activity = activityPluginBinding.activity
-        Shared.binding = activityPluginBinding
+        qrViewFactory.onAttachedToActivity(activityPluginBinding)
     }
 
     override fun onDetachedFromActivity() {
-        activity = null
-        Shared.binding = null
+        qrViewFactory.onDetachedFromActivity()
     }
-    
-
 }
